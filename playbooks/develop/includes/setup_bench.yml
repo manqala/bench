@@ -29,7 +29,7 @@
     register: bench_stat
 
   - name: init bench
-    command: bench init {{ bench_path }} --frappe-branch {{ branch }}
+    command: bench init {{ bench_path }} --frappe-branch {{ frappe_branch }}
     args:
       creates: "{{ bench_path }}"
     when: not bench_stat.stat.exists
@@ -42,7 +42,7 @@
       chdir: "{{ bench_path }}"
 
   - name: install frappe app
-    command: bench get-app frappe https://github.com/frappe/frappe
+    command: bench get-app frappe https://github.com/frappe/frappe --branch {{ frappe_branch }}
     args:
       creates: "{{ bench_path }}/apps/frappe"
       chdir: "{{ bench_path }}"

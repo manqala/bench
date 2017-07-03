@@ -101,8 +101,14 @@ def install_bench(args):
 	if args.production:
 		extra_vars.update(max_worker_connections=multiprocessing.cpu_count() * 1024)
 
-	branch = 'master' if args.production else 'develop'
-	extra_vars.update(branch=branch)
+	frappe_branch = erpnext_branch = 'master' if args.production else 'develop'
+
+	repo_branches = parse_branch_versions(args.repo_branches)
+	if repo_branches:
+		frappe_branch = repo_branches['frappe']
+		erpnext_branch = repo_branches['erpnext']
+
+	extra_vars.update(erpnext_branch=erpnext_branch,frappe_branch=frappe_branch)
 
 	if args.develop:
 		run_playbook('develop/install.yml', sudo=True, extra_vars=extra_vars)
@@ -323,6 +329,26 @@ def run_playbook(playbook_name, sudo=False, extra_vars=None):
 	success = subprocess.check_call(args, cwd=os.path.join(cwd, 'playbooks'))
 	return success
 
+def parse_branch_versions(branch_args):
+	'''
+	Parse frappe and ERPNext versions from the command line.
+	:branch_args = frappe and ERPNext args. 
+		Example "frappe:8.0.46 erpnext:8.0.47"
+	'''
+	if not branch_args:return
+	req = ['frappe','erpnext']
+	try:
+		branch_args = [i.split(":") for i in branch_args.split()]
+		branch_args = {k:v for (k,v) in branch_args}
+		if any([set(branch_args.keys())!=set(req),len(branch_args)!=len(req)]):
+			return
+		return branch_args
+	except:
+		return
+
+
+
+
 def parse_commandline_args():
 	import argparse
 
@@ -364,6 +390,9 @@ def parse_commandline_args():
 	# set passwords
 	parser.add_argument('--mysql-root-password', dest='mysql_root_password', help='Set mysql root password')
 	parser.add_argument('--admin-password', dest='admin_password', help='Set admin password')
+
+	# Set compatible repo branches
+	parser.add_argument('--branch', dest='repo_branches',help='Specify frappe and ERPNext branches ')
 
 	args = parser.parse_args()
 
