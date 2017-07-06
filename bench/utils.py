@@ -762,7 +762,7 @@ def run_playbook(playbook_name, extra_vars=None):
 
 
 def parse_branch_versions(branch_args):
-	from bench.playbooks.install import parse_branch_versions
+	from playbooks.install import parse_branch_versions
 	return parse_branch_versions(branch_args)
 
 def switch_apps_to_known_branch():
