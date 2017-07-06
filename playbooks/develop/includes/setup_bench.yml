@@ -52,3 +52,10 @@
     command: git reset --hard
     args:
       chdir: "{{ bench_path }}/apps/frappe"
+  
+  # Create a new branch for versions if set
+  - name: Create new branch for frappe version {{ frappe_branch }}
+    command: git checkout -b {{ frappe_branch }}
+    args:
+      chdir: "{{ bench_path }}/apps/frappe"
+    when: create_branch

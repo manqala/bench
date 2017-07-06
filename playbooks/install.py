@@ -102,6 +102,7 @@ def install_bench(args):
 		extra_vars.update(max_worker_connections=multiprocessing.cpu_count() * 1024)
 
 	frappe_branch = erpnext_branch = 'master' if args.production else 'develop'
+	create_branch = False
 
 	# Pull versions instead if in arguments
 	if args.versions:
@@ -109,8 +110,10 @@ def install_bench(args):
 		if versions:
 			frappe_branch = versions['frappe']
 			erpnext_branch = versions['erpnext']
+			create_branch = True
 
-	extra_vars.update(erpnext_branch=erpnext_branch,frappe_branch=frappe_branch)
+	extra_vars.update(erpnext_branch=erpnext_branch,frappe_branch=frappe_branch,
+							create_branch=create_branch)
 
 	if args.develop:
 		run_playbook('develop/install.yml', sudo=True, extra_vars=extra_vars)
