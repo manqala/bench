@@ -46,3 +46,9 @@
     args:
       creates: "{{ bench_path }}/apps/frappe"
       chdir: "{{ bench_path }}"
+
+  # Remove unwanted changes
+  - name: Reset frappe app
+    command: git reset --hard
+    args:
+      chdir: "{{ bench_path }}/apps/frappe"

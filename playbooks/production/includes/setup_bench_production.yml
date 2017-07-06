@@ -27,6 +27,12 @@
         chdir: '{{ bench_path }}'
       when: not app.stat.exists
 
+      # Remove unwanted changes
+    - name: Reset erpnext app
+      command: git reset --hard
+      args:
+        chdir: "{{ bench_path }}/apps/erpnext"
+
     - name: Install erpnext app
       command: bench --site {{ site }} install-app erpnext
       args:
