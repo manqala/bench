@@ -27,12 +27,6 @@
         chdir: '{{ bench_path }}'
       when: not app.stat.exists
 
-      # Remove unwanted changes
-    - name: Reset erpnext app
-      command: git reset --hard
-      args:
-        chdir: "{{ bench_path }}/apps/erpnext"
-
       # Create a new branch for versions if set
     - name: Create new branch for ERPNext version {{ erpnext_branch }}
       command: git checkout -b {{ erpnext_branch }}

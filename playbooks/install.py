@@ -124,6 +124,23 @@ def install_bench(args):
 	if os.path.exists(tmp_bench_repo):
 		shutil.rmtree(tmp_bench_repo)
 
+	reset_new_apps(repo_path)
+
+def reset_new_apps(bench_path):
+	'''
+	Remove all unstaged files upon install.
+	This happens on some computers:
+		https://stackoverflow.com/questions/15659295/files-are-listed-as-modified-directly-after-clone
+	'''
+	out = subprocess.check_output('git reset --hard',cwd=bench_path, shell=True)
+	for app in ['frappe','erpnext']:
+		path = os.path.join(os.path.expanduser('~'),'frappe-bench',app)
+		if os.path.isdir(path):
+			out = subprocess.check_output('git reset --hard',cwd=path, shell=True)
+
+
+
+
 def parse_branch_versions(branch_args):
 	'''
 	Parse frappe and ERPNext versions from the command line arguments if specified.

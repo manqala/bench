@@ -47,12 +47,6 @@
       creates: "{{ bench_path }}/apps/frappe"
       chdir: "{{ bench_path }}"
 
-  # Remove unwanted changes
-  - name: Reset frappe app
-    command: git reset --hard
-    args:
-      chdir: "{{ bench_path }}/apps/frappe"
-  
   # Create a new branch for versions if set
   - name: Create new branch for frappe version {{ frappe_branch }}
     command: git checkout -b {{ frappe_branch }}
