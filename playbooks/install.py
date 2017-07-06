@@ -105,7 +105,6 @@ def install_bench(args):
 
 	# Pull versions instead if in arguments
 	if args.versions:
-		from bench.utils import parse_branch_versions
 		versions = parse_branch_versions(args.versions)
 		if versions:
 			frappe_branch = versions['frappe']
@@ -121,6 +120,24 @@ def install_bench(args):
 
 	if os.path.exists(tmp_bench_repo):
 		shutil.rmtree(tmp_bench_repo)
+
+def parse_branch_versions(branch_args):
+	'''
+	Parse frappe and ERPNext versions from the command line arguments if specified.
+	:branch_args = frappe and ERPNext args. e.g."frappe:8.0.46 erpnext:8.0.47"
+	:return {'app_name':'version'} for all apps in branch_args.
+	'''
+	if not branch_args:return
+	req = ['frappe','erpnext']
+	try:
+		branch_args = branch_args.strip('"')
+		branch_args = [i.split(":") for i in branch_args.split()]
+		branch_args = {k:'v{}'.format(v) for (k,v) in branch_args}
+		if any([set(branch_args.keys())!=set(req),len(branch_args)!=len(req)]):
+			return
+		return branch_args
+	except:
+		return
 
 def check_distribution_compatibility():
 	supported_dists = {'ubuntu': [14, 15, 16], 'debian': [7, 8],

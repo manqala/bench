@@ -762,24 +762,8 @@ def run_playbook(playbook_name, extra_vars=None):
 
 
 def parse_branch_versions(branch_args):
-	'''
-	Parse frappe and ERPNext versions from the command line arguments if specified.
-	:branch_args = frappe and ERPNext args. e.g."frappe:8.0.46 erpnext:8.0.47"
-	:return {'app_name':'version'} for all apps in branch_args.
-	'''
-	if not branch_args:return
-	req = ['frappe','erpnext']
-	try:
-		branch_args = branch_args.strip('"')
-		branch_args = [i.split(":") for i in branch_args.split()]
-		branch_args = {k:'v{}'.format(v) for (k,v) in branch_args}
-		if any([set(branch_args.keys())!=set(req),len(branch_args)!=len(req)]):
-			return
-		# with open(os.path.join('.', 'sites', 'apps_version.json'), 'w') as f:
-		# 	json.dump(branch_args,f)
-		return branch_args
-	except:
-		return
+	from bench.playbooks.install import parse_branch_versions
+	return parse_branch_versions(branch_args)
 
 def switch_apps_to_known_branch():
 	'''Switch apps to known remote branch incase on a tag version (unknown) branch.'''
