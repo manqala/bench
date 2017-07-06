@@ -134,7 +134,7 @@ def reset_new_apps(bench_path):
 	'''
 	out = subprocess.check_output('git reset --hard',cwd=bench_path, shell=True)
 	for app in ['frappe','erpnext']:
-		path = os.path.join(os.path.expanduser('~'),'frappe-bench',app)
+		path = os.path.join(os.path.expanduser('~'),'frappe-bench','apps',app)
 		if os.path.isdir(path):
 			out = subprocess.check_output('git reset --hard',cwd=path, shell=True)
 
