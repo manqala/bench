@@ -3,7 +3,8 @@ import sys, os
 from bench.config.common_site_config import get_config
 from bench.app import pull_all_apps, is_version_upgrade
 from bench.utils import (update_bench, validate_upgrade, pre_upgrade, post_upgrade, before_update,
-	update_requirements, update_npm_packages, backup_all_sites, patch_sites, build_assets, restart_supervisor_processes)
+	update_requirements, update_npm_packages, backup_all_sites, patch_sites, build_assets, 
+	restart_supervisor_processes,switch_apps_to_known_branch)
 from bench import patches
 
 #TODO: Not DRY
@@ -19,7 +20,9 @@ from bench import patches
 @click.option('--no-backup',is_flag=True)
 @click.option('--force',is_flag=True)
 @click.option('--reset', is_flag=True, help="Hard resets git branch's to their new states overriding any changes and overriding rebase on pull")
-def update(pull=False, patch=False, build=False, bench=False, auto=False, restart_supervisor=False, requirements=False, no_backup=False, upgrade=False, force=False, reset=False):
+@click.option('--versions', help="Retain or upgrade to specific frappe and ERPNext versions")
+def update(pull=False, patch=False, build=False, bench=False, auto=False, restart_supervisor=False, 
+			requirements=False, no_backup=False, upgrade=False, force=False, reset=False, versions=None):
 	"Update bench"
 
 	if not (pull or patch or build or bench or requirements):
@@ -42,12 +45,13 @@ def update(pull=False, patch=False, build=False, bench=False, auto=False, restar
 				'restart-supervisor': restart_supervisor,
 				'upgrade': upgrade,
 				'reset':reset
-		})
+		},versions=versions)
 
 	if conf.get('release_bench'):
 		print('Release bench, cannot update')
 		sys.exit(1)
 
+	switch_apps_to_known_branch()
 	version_upgrade = is_version_upgrade()
 
 	if version_upgrade[0] and not upgrade:
@@ -59,11 +63,13 @@ def update(pull=False, patch=False, build=False, bench=False, auto=False, restar
 		print("You can stay on the latest stable release by running `bench switch-to-master` or pin your bench to {0} by running `bench switch-to-v{0}`".format(version_upgrade[1]))
 		sys.exit(1)
 
-	_update(pull, patch, build, bench, auto, restart_supervisor, requirements, no_backup, upgrade, force=force, reset=reset)
+	_update(pull, patch, build, bench, auto, restart_supervisor, requirements, no_backup, upgrade, force=force, 
+				reset=reset, versions=versions)
 
 
 def _update(pull=False, patch=False, build=False, update_bench=False, auto=False, restart_supervisor=False,
-		requirements=False, no_backup=False, upgrade=False, bench_path='.', force=False, reset=False):
+		requirements=False, no_backup=False, upgrade=False, bench_path='.', force=False, 
+		reset=False, versions=None):
 	conf = get_config(bench_path=bench_path)
 	version_upgrade = is_version_upgrade(bench_path=bench_path)
 
@@ -76,7 +82,7 @@ def _update(pull=False, patch=False, build=False, update_bench=False, auto=False
 	before_update(bench_path=bench_path, requirements=requirements)
 
 	if pull:
-		pull_all_apps(bench_path=bench_path, reset=reset)
+		pull_all_apps(bench_path=bench_path, reset=reset, versions=versions)
 
 	if requirements:
 		update_requirements(bench_path=bench_path)
@@ -118,8 +124,11 @@ def retry_upgrade(version):
 	post_upgrade(version-1, version)
 
 
-def restart_update(kwargs):
+def restart_update(kwargs,versions=None):
 	args = ['--'+k for k, v in list(kwargs.items()) if v]
+	if versions:
+		v = '--versions="{}"'.format(versions)
+		args.append(v)
 	os.execv(sys.argv[0], sys.argv[:2] + args)
 
 

@@ -1,4 +1,4 @@
-import os, sys, shutil, subprocess, logging, itertools, requests, json, platform, select, pwd, grp, multiprocessing, hashlib
+import os, sys, shutil, re, subprocess, logging, itertools, requests, json, platform, select, pwd, grp, multiprocessing, hashlib
 from distutils.spawn import find_executable
 import bench
 from bench import env
@@ -759,3 +759,51 @@ def run_playbook(playbook_name, extra_vars=None):
 	if extra_vars:
 		args.extend(['-e', json.dumps(extra_vars)])
 	subprocess.check_call(args, cwd=os.path.join(os.path.dirname(bench.__path__[0]), 'playbooks'))
+
+
+def parse_branch_versions(branch_args):
+	'''
+	Parse frappe and ERPNext versions from the command line arguments if specified.
+	:branch_args = frappe and ERPNext args. e.g."frappe:8.0.46 erpnext:8.0.47"
+	:return {'app_name':'version'} for all apps in branch_args.
+	'''
+	if not branch_args:return
+	req = ['frappe','erpnext']
+	try:
+		branch_args = branch_args.strip('"')
+		branch_args = [i.split(":") for i in branch_args.split()]
+		branch_args = {k:'v{}'.format(v) for (k,v) in branch_args}
+		if any([set(branch_args.keys())!=set(req),len(branch_args)!=len(req)]):
+			return
+		# with open(os.path.join('.', 'sites', 'apps_version.json'), 'w') as f:
+		# 	json.dump(branch_args,f)
+		return branch_args
+	except:
+		return
+
+def switch_apps_to_known_branch():
+	'''Switch apps to known remote branch incase on a tag version (unknown) branch.'''
+	def switch_(app,app_dir):
+		out = subprocess.check_output(['git', 'branch'], cwd=app_dir,
+			stderr=subprocess.STDOUT)
+		fetch_branch = 'develop' if re.search('develop',out) else 'master'
+		out = subprocess.check_output('git fetch upstream "{branch}":"{branch}";git fetch upstream --tags'.format(branch=fetch_branch),
+					cwd=app_dir,stderr=subprocess.STDOUT,shell=True)
+		print("Switching {} to {} for update".format(app,fetch_branch))
+		out = subprocess.check_output('git checkout {}'.format(fetch_branch),cwd=app_dir,
+					stderr=subprocess.STDOUT,shell=True)
+
+	from bench.app import get_upstream_version, get_apps, get_repo_dir,InvalidBranchException
+	apps = ['frappe']
+	if 'erpnext' in get_apps():
+		apps.append('erpnext')
+	for app in apps:
+		app_dir = get_repo_dir(app)		
+		try:
+			# Check if branch is available on remote repo
+			upstream = get_upstream_version(app)
+			if upstream:continue
+			switch_(app,app_dir)
+		except InvalidBranchException:
+			switch_(app,app_dir)
+			

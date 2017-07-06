@@ -1,6 +1,7 @@
 import os
 from .utils import (exec_cmd, get_frappe, check_git_for_shallow_clone, build_assets,
-	restart_supervisor_processes, get_cmd_output, run_frappe_cmd, CommandFailedError)
+	restart_supervisor_processes, get_cmd_output, run_frappe_cmd, CommandFailedError,
+	 parse_branch_versions)
 from .config.common_site_config import get_config
 
 import logging
@@ -132,8 +133,9 @@ def remove_app(app, bench_path='.'):
 		restart_supervisor_processes(bench_path=bench_path)
 
 
-def pull_all_apps(bench_path='.', reset=False):
+def pull_all_apps(bench_path='.', reset=False, versions=None):
 	'''Check all apps if there no local changes, pull'''
+	versions = parse_branch_versions(versions)
 	rebase = '--rebase' if get_config(bench_path).get('rebase_on_pull') else ''
 	
 	# chech for local changes
@@ -168,7 +170,21 @@ Here are your choices:
 			else:
 				exec_cmd("git pull {rebase} {remote} {branch}".format(rebase=rebase,
 					remote=remote, branch=get_current_branch(app, bench_path=bench_path)), cwd=app_dir)
+				if versions:
+					version = versions.get(app,None)
+					switch_app_to_version(app,app_dir,version)
 			exec_cmd('find . -name "*.pyc" -delete', cwd=app_dir)
+
+def switch_app_to_version(app,app_dir,version):
+	'''Swith app to specific version.'''
+	if not version:return
+	out = subprocess.check_output(['git', 'branch'], cwd=app_dir,
+									   stderr=subprocess.STDOUT)
+	new_branch= '-b {}'.format(version) if not re.search(version,out) else ''
+	print("Switching {} to {} ".format(app,version))
+	out = subprocess.check_output('git checkout {} {}'.format(version,new_branch),
+				cwd=app_dir,stderr=subprocess.STDOUT,shell=True)
+
 
 
 def is_version_upgrade(app='frappe', bench_path='.', branch=None):
@@ -197,8 +213,12 @@ def get_current_frappe_version(bench_path='.'):
 		return 0
 
 def get_current_branch(app, bench_path='.'):
-	repo_dir = get_repo_dir(app, bench_path=bench_path)
-	return get_cmd_output("basename $(git symbolic-ref -q HEAD)", cwd=repo_dir)
+	try:
+		repo_dir = get_repo_dir(app, bench_path=bench_path)
+		return get_cmd_output("basename $(git symbolic-ref -q HEAD)", cwd=repo_dir)
+	except subprocess.CalledProcessError:
+		print "No branch exists for {}".format(app)
+		return
 
 def get_remote(app, bench_path='.'):
 	repo_dir = get_repo_dir(app, bench_path=bench_path)
