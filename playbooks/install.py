@@ -151,6 +151,7 @@ def parse_branch_versions(branch_args):
 	if not branch_args:return
 	req = ['frappe','erpnext']
 	try:
+		# TODO accomodate 'v'
 		branch_args = branch_args.strip('"')
 		branch_args = [i.split(":") for i in branch_args.split()]
 		branch_args = {k:'v{}'.format(v) for (k,v) in branch_args}

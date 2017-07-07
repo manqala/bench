@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 class InvalidBranchException(Exception): pass
 class InvalidRemoteException(Exception): pass
+class InvalidVersionException(Exception): pass
 
 class MajorVersionUpgradeException(Exception):
 	def __init__(self, message, upstream_version, local_version):
@@ -160,6 +161,7 @@ Here are your choices:
 
 	for app in get_apps(bench_path=bench_path):
 		app_dir = get_repo_dir(app, bench_path=bench_path)
+		version = versions.get(app,None) if versions else None
 		if os.path.exists(os.path.join(app_dir, '.git')):
 			remote = get_remote(app)
 			logger.info('pulling {0}'.format(app))
@@ -167,17 +169,18 @@ Here are your choices:
 				exec_cmd("git fetch --all", cwd=app_dir)
 				exec_cmd("git reset --hard {remote}/{branch}".format(
 					remote=remote, branch=get_current_branch(app,bench_path=bench_path)), cwd=app_dir)
+			elif version:
+				exec_cmd("git fetch --all", cwd=app_dir)
+				switch_app_to_version(app,app_dir,version)
 			else:
 				exec_cmd("git pull {rebase} {remote} {branch}".format(rebase=rebase,
 					remote=remote, branch=get_current_branch(app, bench_path=bench_path)), cwd=app_dir)
-				if versions:
-					version = versions.get(app,None)
-					switch_app_to_version(app,app_dir,version)
 			exec_cmd('find . -name "*.pyc" -delete', cwd=app_dir)
 
 def switch_app_to_version(app,app_dir,version):
 	'''Swith app to specific version.'''
 	if not version:return
+	check_version_exists(app,app_dir,version)
 	out = subprocess.check_output(['git', 'branch'], cwd=app_dir,
 									   stderr=subprocess.STDOUT)
 	new_branch= '-b {}'.format(version) if not re.search(version,out) else ''
@@ -185,6 +188,12 @@ def switch_app_to_version(app,app_dir,version):
 	out = subprocess.check_output('git checkout {} {}'.format(version,new_branch),
 				cwd=app_dir,stderr=subprocess.STDOUT,shell=True)
 
+def check_version_exists(app,app_dir,version):
+	'''Confirm that version exists for app.'''
+	version = 'v{}'.format(version) if not version.startswith('v') else version
+	out = subprocess.check_output("git tag -l",cwd=app_dir,shell=True)
+	if not version in out.split('\n'):
+		raise InvalidVersionException('Version "{}" not found for {}'.format(version,app))
 
 
 def is_version_upgrade(app='frappe', bench_path='.', branch=None):

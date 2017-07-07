@@ -50,7 +50,7 @@ def update(pull=False, patch=False, build=False, bench=False, auto=False, restar
 	if conf.get('release_bench'):
 		print('Release bench, cannot update')
 		sys.exit(1)
-
+	
 	switch_apps_to_known_branch()
 	version_upgrade = is_version_upgrade()
 
