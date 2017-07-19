@@ -170,7 +170,6 @@ Here are your choices:
 				exec_cmd("git reset --hard {remote}/{branch}".format(
 					remote=remote, branch=get_current_branch(app,bench_path=bench_path)), cwd=app_dir)
 			elif version:
-				exec_cmd("git fetch --all", cwd=app_dir)
 				switch_app_to_version(app,app_dir,version)
 			else:
 				exec_cmd("git pull {rebase} {remote} {branch}".format(rebase=rebase,
@@ -184,15 +183,16 @@ def switch_app_to_version(app,app_dir,version):
 	out = subprocess.check_output(['git', 'branch'], cwd=app_dir,
 									   stderr=subprocess.STDOUT)
 	new_branch= '-b {}'.format(version) if not re.search(version,out) else ''
-	print("Switching {} to {} ".format(app,version))
+	print("Switching {} to branch {} ".format(app,version))
 	out = subprocess.check_output('git checkout {} {}'.format(version,new_branch),
 				cwd=app_dir,stderr=subprocess.STDOUT,shell=True)
 
-def check_version_exists(app,app_dir,version):
+def check_version_exists(app,app_dir,version,upstream="upstream"):
 	'''Confirm that version exists for app.'''
-	version = 'v{}'.format(version) if not version.startswith('v') else version
-	out = subprocess.check_output("git tag -l",cwd=app_dir,shell=True)
-	if not version in out.split('\n'):
+	version = 'v{}'.format(version.strip('v'))
+	try:
+		out = subprocess.check_output("git fetch {} tag {}".format(upstream,version),cwd=app_dir,shell=True)
+	except subprocess.CalledProcessError:
 		raise InvalidVersionException('Version "{}" not found for {}'.format(version,app))
 
 
@@ -226,7 +226,7 @@ def get_current_branch(app, bench_path='.'):
 		repo_dir = get_repo_dir(app, bench_path=bench_path)
 		return get_cmd_output("basename $(git symbolic-ref -q HEAD)", cwd=repo_dir)
 	except subprocess.CalledProcessError:
-		print "No branch exists for {}".format(app)
+		print("No branch exists for {}".format(app))
 		return
 
 def get_remote(app, bench_path='.'):

@@ -1,5 +1,5 @@
 # wget setup_frappe.py | python
-import os, sys, subprocess, getpass, json, multiprocessing, shutil, platform
+import os, sys, re, subprocess, getpass, json, multiprocessing, shutil, platform
 from distutils.spawn import find_executable
 
 tmp_bench_repo = '/tmp/.bench'
@@ -148,18 +148,28 @@ def parse_branch_versions(branch_args):
 	:branch_args = frappe and ERPNext args. e.g."frappe:8.0.46 erpnext:8.0.47"
 	:return {'app_name':'version'} for all apps in branch_args.
 	'''
+	def check_ver_number(ver_number):
+		ver_number = ver_number.strip('v')
+		if re.match('^[0-9]+$',ver_number):
+			ver_number = '{}.0.0'.format(ver_number)
+		elif re.match('^[0-9]+\.[0-9]+$',ver_number):
+			ver_number = '{}.0'.format(ver_number)
+		elif re.match('^[0-9]+\.[0-9]+\.[0-9]+$',ver_number):
+			pass
+		else:
+			raise
+		return ver_number
+
 	if not branch_args:return
-	req = ['frappe','erpnext']
 	try:
-		# TODO accomodate 'v'
 		branch_args = branch_args.strip('"')
 		branch_args = [i.split(":") for i in branch_args.split()]
-		branch_args = {k:'v{}'.format(v) for (k,v) in branch_args}
-		if any([set(branch_args.keys())!=set(req),len(branch_args)!=len(req)]):
-			return
+		branch_args = {k:'v{}'.format(check_ver_number(v)) for (k,v) in branch_args}
 		return branch_args
-	except:
-		return
+	except Exception as e:
+		print("\n Versions should be in the format: \n \t --versions \"frappe:x.x.x erpnext:x.x.x\" \n\tExample:\
+			\n\t --versions \"frappe:8.0.0 erpnext:8.0.0\" \n")
+		sys.exit()
 
 def check_distribution_compatibility():
 	supported_dists = {'ubuntu': [14, 15, 16], 'debian': [7, 8],

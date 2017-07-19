@@ -765,29 +765,26 @@ def parse_branch_versions(branch_args):
 	from playbooks.install import parse_branch_versions
 	return parse_branch_versions(branch_args)
 
-def switch_apps_to_known_branch():
-	'''Switch apps to known remote branch incase on a tag version (unknown) branch.'''
-	def switch_(app,app_dir):
-		out = subprocess.check_output(['git', 'branch'], cwd=app_dir,
-			stderr=subprocess.STDOUT)
-		fetch_branch = 'develop' if re.search('develop',out) else 'master'
-		out = subprocess.check_output('git fetch upstream "{branch}":"{branch}";git fetch upstream --tags'.format(branch=fetch_branch),
-					cwd=app_dir,stderr=subprocess.STDOUT,shell=True)
-		print("Switching {} to {} for update".format(app,fetch_branch))
-		out = subprocess.check_output('git checkout {}'.format(fetch_branch),cwd=app_dir,
-					stderr=subprocess.STDOUT,shell=True)
 
-	from bench.app import get_upstream_version, get_apps, get_repo_dir,InvalidBranchException
-	apps = ['frappe']
-	if 'erpnext' in get_apps():
-		apps.append('erpnext')
+def confirm_local_branches(apps,upstream='upstream'):
+	'''Check local branch exists on remote repo.'''
+	from bench.app import get_repo_dir, get_current_branch, InvalidBranchException
 	for app in apps:
-		app_dir = get_repo_dir(app)		
 		try:
-			# Check if branch is available on remote repo
-			upstream = get_upstream_version(app)
-			if upstream:continue
-			switch_(app,app_dir)
+			app_dir = get_repo_dir(app)
+			if not os.path.exists(app_dir):continue
+			current_branch = get_current_branch(app)
+			if not current_branch:
+				raise InvalidBranchException
+			out = subprocess.check_output('git ls-remote --heads {}'.format(upstream),
+						cwd=app_dir,shell=True)
+			out = out.split('\n')
+			if current_branch not in [i[i.rfind('/')+1:] for i in out]:
+				raise InvalidBranchException
 		except InvalidBranchException:
-			switch_(app,app_dir)
+			print('Please switch {} to a known branch on your repo!'.format(app))
+			sys.exit()
+
+		
+
 			

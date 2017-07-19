@@ -4,7 +4,7 @@ from bench.config.common_site_config import get_config
 from bench.app import pull_all_apps, is_version_upgrade
 from bench.utils import (update_bench, validate_upgrade, pre_upgrade, post_upgrade, before_update,
 	update_requirements, update_npm_packages, backup_all_sites, patch_sites, build_assets, 
-	restart_supervisor_processes,switch_apps_to_known_branch)
+	restart_supervisor_processes,confirm_local_branches)
 from bench import patches
 
 #TODO: Not DRY
@@ -51,8 +51,10 @@ def update(pull=False, patch=False, build=False, bench=False, auto=False, restar
 		print('Release bench, cannot update')
 		sys.exit(1)
 	
-	switch_apps_to_known_branch()
-	version_upgrade = is_version_upgrade()
+	if not versions:
+		confirm_local_branches(['frappe','erpnext'])
+	version_upgrade = [None] if versions else is_version_upgrade()
+
 
 	if version_upgrade[0] and not upgrade:
 		print()
@@ -70,8 +72,14 @@ def update(pull=False, patch=False, build=False, bench=False, auto=False, restar
 def _update(pull=False, patch=False, build=False, update_bench=False, auto=False, restart_supervisor=False,
 		requirements=False, no_backup=False, upgrade=False, bench_path='.', force=False, 
 		reset=False, versions=None):
+	
+	if not versions:
+		confirm_local_branches(['frappe','erpnext'])
+
 	conf = get_config(bench_path=bench_path)
-	version_upgrade = is_version_upgrade(bench_path=bench_path)
+
+	version_upgrade = [None] if versions else is_version_upgrade(bench_path=bench_path)
+	upgrade = False if versions else upgrade
 
 	if version_upgrade[0] and not upgrade:
 		raise Exception("Major Version Upgrade")
